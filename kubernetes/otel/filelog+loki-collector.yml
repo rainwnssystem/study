@@ -1,0 +1,67 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: otel
+spec:
+  mode: daemonset
+  tolerations:
+    - key: dedicated
+      value: app
+      effect: NoSchedule
+  volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+  volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+      readOnly: true
+  config:
+    # extensions:  # X-Scope-OrgID only for multi-tenant mode
+    #   headers_setter:
+    #     headers:
+    #       - action: upsert
+    #         key: X-Scope-OrgID
+    #         value: my_tenant
+
+    receivers:
+      otlp:
+        protocols:
+          http: {}
+          grpc: {}
+      filelog:
+        include_file_path: true
+        include:
+          # - /var/log/containers/*.log
+          - /var/log/pods/*/*/*.log
+        operators:
+          - id: container-parser
+            type: container
+
+    processors:
+      resource:
+        attributes:
+          - action: insert
+            key: loki.format
+            value: raw
+          - action: insert
+            key: loki.resource.labels
+            value: pod, namespace, container, cluster, filename
+
+    exporters:
+      debug: {}
+      otlphttp/loki:
+        endpoint: http://loki.loki.svc.cluster.local:3100/otlp
+        tls:
+          insecure: true
+        # auth:
+        #   authenticator: headers_setter
+
+    service:
+      # extensions: [headers_setter]
+      pipelines:
+        logs:
+          receivers: [filelog]
+          processors: [resource]
+          exporters: [otlphttp/loki]

@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: wsi
+  labels:
+    app: product
+spec:
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+      annotations:
+        sidecar.opentelemetry.io/inject: "true"
+        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: /app/main
+        instrumentation.opentelemetry.io/go-container-names: "product"
+    spec:
+      nodeSelector:
+        dedicated: app
+      tolerations:
+        - key: dedicated
+          value: app
+          effect: NoSchedule
+      containers:
+        - name: product
+          image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 8080
+              name: product
+          securityContext:
+            privileged: true
+            runAsUser: 0
+        # - name: autoinstrumentation-go
+        #   image: otel/autoinstrumentation-go
+        #   imagePullPolicy: IfNotPresent
+        #   resources:
+        #     requests:
+        #       cpu: 100m
+        #       memory: 100Mi
+        #     limits:
+        #       cpu: 100m
+        #       memory: 100Mi
+        #   env:
+        #     - name: OTEL_GO_AUTO_TARGET_EXE
+        #       value: /app/main
+        #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        #       value: http://otel-collector-collector.otel:4318
+        #     - name: OTEL_SERVICE_NAME
+        #       value: product
+        #   securityContext:
+        #     runAsUser: 0
+        #     privileged: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  selector:
+    app: product
+  ports:
+    - name: product
+      protocol: TCP
+      port: 8080
+      targetPort: 8080

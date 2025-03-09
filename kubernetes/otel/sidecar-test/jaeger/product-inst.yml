@@ -1,0 +1,18 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: product-instrumentation
+  namespace: wsi
+spec:
+  exporter:
+    endpoint: otel-collector-collector.wsi.svc.cluster.local:4318
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  go:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: otel-collector-collector.wsi.svc.cluster.local:4318

@@ -1,0 +1,10 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: python-instrumentation
+  namespace: wsi
+spec:
+  exporter:
+    endpoint: http://adot-collector-collector.otel.svc.cluster.local:4318
+  python:
+    image: public.ecr.aws/aws-observability/adot-autoinstrumentation-python:v0.8.0

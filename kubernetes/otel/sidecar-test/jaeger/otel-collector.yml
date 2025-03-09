@@ -1,0 +1,29 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: wsi
+spec:
+  # mode: sidecar
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    processors: {}
+
+    exporters:
+      debug: {}
+      otlp/jaeger:
+        endpoint: https://jaeger-collector.observability.svc.cluster.local:4318
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [otlp/jaeger]
+      telemetry:
+        logs:
+          level: debug

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      tolerations:
+        - key: dedicated
+          value: "app"
+          effect: NoSchedule
+          operator: Equal
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: dedicated
+                    operator: In
+                    values:
+                      - app
+      containers:
+        - name: app
+          image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rds-secret
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rds-secret
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_HOST
+              value: wsi-rds-mysql.cluster-cukiuqrdabzk.ap-northeast-2.rds.amazonaws.com 
+            - name: MYSQL_PORT
+              value: "3307"
+            - name: MYSQL_DBNAME
+              value: wsi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: wsi
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /healthcheck
+spec:
+  selector:
+    app: product
+  ports:
+    - port: 8080
+      targetPort: 8080

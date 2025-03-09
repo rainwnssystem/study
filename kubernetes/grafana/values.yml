@@ -1,0 +1,3 @@
+persistence:
+  storageClassName: gp2
+  size: 2Gi

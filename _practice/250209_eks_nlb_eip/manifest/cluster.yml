@@ -1,0 +1,24 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: demo-cluster
+  region: ap-northeast-2
+  version: "1.32"
+
+vpc:
+  id: vpc-00054ef80a4c28b9d
+  subnets:
+    private:
+      private-a: { id: subnet-078c8fbf7a232cc0a }
+      private-b: { id: subnet-03da39c273ad924cb }
+      private-c: { id: subnet-0d2b2dc818d3f14a0 }
+
+managedNodeGroups:
+  - name: demo-node
+    instanceType: t3.medium
+    desiredCapacity: 3
+    maxSize: 3
+    minSize: 3
+    volumeSize: 20
+    privateNetworking: true
