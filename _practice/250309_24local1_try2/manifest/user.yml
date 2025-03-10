@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: skills
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      serviceAccountName: secrets
+      tolerations:
+        - key: dedicated
+          value: "app"
+          effect: NoSchedule
+          operator: Equal
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: dedicated
+                    operator: In
+                    values:
+                      - app
+      containers:
+        - name: app
+          image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/user
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: MONGODB_HOST
+              value: skills-mongodb-cluster.cluster-cukiuqrdabzk.ap-northeast-2.docdb.amazonaws.com
+            - name: MONGODB_PORT
+              value: "27016"
+            - name: MONGODB_USERNAME
+              value: skills
+            - name: MONGODB_PASSWORD
+              value: password
+            - name: AWS_REGION
+              value: ap-northeast-2
+            - name: AWS_SECRET_NAME
+              value: skills-secret
+            - name: TOKEN_ENDPOINT
+              value: http://token.skills.svc.cluster.local:8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: skills
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  selector:
+    app: user
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user
+  namespace: skills
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user
+  minReplicas: 2
+  maxReplicas: 64
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 10
